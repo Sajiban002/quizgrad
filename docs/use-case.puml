@@ -1,0 +1,61 @@
+@startuml
+
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontColor #333333
+skinparam shadowing false
+
+skinparam actor {
+    BorderColor #4285f4
+    BackgroundColor #EAF2FF
+    ArrowColor #4285f4
+}
+
+skinparam agent {
+    BorderColor #fbbf24
+    BackgroundColor #FFFBEB
+}
+
+skinparam rectangle {
+    BorderColor #9ca3af
+    BackgroundColor #f3f4f6
+    FontColor #222222
+    stereotypeFontColor #222222
+}
+skinparam usecase {
+    BorderColor #888888
+    BackgroundColor #FFFFFF
+}
+skinparam arrow {
+    Color #555555
+}
+
+actor "Школьник" as Student
+agent "Gemini AI" as AI
+
+rectangle "Система QuizGrad" {
+    usecase "Создать викторину" as CreateQuiz
+    usecase "Выбрать количество вопросов" as SetQuestionCount
+    usecase "Указать тему" as SetTopic
+    usecase "Пройти викторину" as TakeQuiz
+    usecase "Проверить ответы" as CheckAnswers
+    usecase "Просмотреть результаты" as ViewResults
+    usecase "Просмотреть историю викторин" as ViewHistory
+}
+
+Student -- CreateQuiz
+Student -- TakeQuiz
+Student -- CheckAnswers
+Student -- ViewResults
+Student -- ViewHistory
+
+CreateQuiz -- AI
+SetTopic -- AI
+
+(CreateQuiz) .> (SetTopic) : <<include>>
+(CreateQuiz) .> (SetQuestionCount) : <<include>>
+
+(CheckAnswers) .> (TakeQuiz) : <<extend>>
+
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+
+autonumber
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontColor #333333
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+skinparam actor {
+    BackgroundColor #4285f4
+    BorderColor #333
+    FontColor #FFFFFF
+}
+
+skinparam participant {
+    BorderColor #333
+    FontColor #FFFFFF
+}
+
+skinparam database {
+    BorderColor #333
+    FontColor #FFFFFF
+}
+
+actor "Пользователь" as User
+participant "React Frontend" as Frontend #10b981
+participant "Python Backend" as Backend #8b5cf6
+participant "Gemini AI API" as Gemini #fbbf24
+database "JSON Storage" as Storage #ef4444
+
+group Создание викторины
+    User -> Frontend: Вводит тему и выбирает количество
+    Frontend -> Backend: POST /generate-quiz
+    Backend -> Gemini: Запрос генерации
+    Gemini --> Backend: Сгенерированная викторина
+    Backend -> Backend: Определение темы и стиля
+    Backend --> Frontend: JSON с викториной
+    Frontend --> User: Отображение викторины
+end
+
+group Проверка викторины
+    User -> Frontend: Выбирает ответы
+    Frontend -> Backend: POST /check-quiz
+    Backend -> Backend: Проверка ответов
+    Backend -> Storage: Сохранение в JSON
+    Backend --> Frontend: Результаты
+    Frontend --> User: Показ результатов
+end
+
+group Просмотр истории
+    User -> Frontend: Запрос истории
+    Frontend -> Backend: GET /quizzes
+    Backend <-- Storage: Список викторин
+    Backend --> Frontend: JSON с историей
+    Frontend --> User: Таблица викторин
+end
+
+@enduml
