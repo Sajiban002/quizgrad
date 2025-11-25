@@ -9,13 +9,10 @@ import re
 app = Flask(__name__)
 CORS(app)
 
-# Используйте ключ из Dart кода, который работает!
-GEMINI_API_KEY = "YOUR_API_KEY_HERE"
 genai.configure(api_key=GEMINI_API_KEY)
 
 working_model = None
 
-# Обновлённый список моделей без префикса models/
 MODELS_TO_TRY = [
     'gemini-2.0-flash-exp',
     'gemini-1.5-flash',
@@ -36,7 +33,6 @@ def get_working_model():
             print(f'🔄 Попытка использовать модель: {model_name}')
             test_model = genai.GenerativeModel(model_name)
             
-            # Тестовый запрос
             response = test_model.generate_content("Привет")
             if response.text:
                 print(f'✅ Модель {model_name} работает!')
@@ -45,7 +41,6 @@ def get_working_model():
                 
         except Exception as e:
             error_msg = str(e)
-            # Не показываем полную ошибку для 429 (quota)
             if '429' in error_msg or 'quota' in error_msg.lower():
                 print(f'❌ Модель {model_name}: квота исчерпана, пробуем следующую...')
             else:
@@ -122,7 +117,6 @@ def generate_quiz():
         
         category, style = detect_theme_category(topic)
         
-        # Получаем рабочую модель
         model = get_working_model()
         
         prompt = f"""Создай викторину на тему "{topic}" с {num_questions} вопросами.
@@ -147,21 +141,15 @@ def generate_quiz():
 где "correct" - это индекс правильного ответа (0-3).
 Верни ТОЛЬКО валидный JSON, ничего больше."""
 
-        # Генерация викторины
         response = model.generate_content(prompt)
         response_text = response.text.strip()
-        
-        # Убираем markdown если есть
         response_text = response_text.replace('```json', '').replace('```', '').strip()
-        
-        # Ищем JSON в ответе
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             quiz_data = json.loads(json_match.group())
         else:
             quiz_data = json.loads(response_text)
         
-        # Проверяем что questions существует
         if 'questions' not in quiz_data or not quiz_data['questions']:
             return jsonify({'error': 'Invalid quiz format from AI'}), 500
         

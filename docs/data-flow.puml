@@ -1,59 +1,152 @@
 @startuml
+!define RECTANGLE_WIDTH 180
+!define RECTANGLE_HEIGHT 60
 
-autonumber
+skinparam backgroundColor #F9FAFB
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam dpi 150
 
-skinparam backgroundColor #FFFFFF
-skinparam defaultFontColor #333333
-skinparam shadowing false
-skinparam sequenceMessageAlign center
-
-skinparam actor {
-    BackgroundColor #4285f4
-    BorderColor #333
-    FontColor #FFFFFF
+skinparam rectangle {
+    BackgroundColor #FFFFFF
+    BorderColor #D1D5DB
+    BorderThickness 2
+    Shadowing false
+    FontSize 11
+    FontStyle bold
 }
 
-skinparam participant {
-    BorderColor #333
-    FontColor #FFFFFF
+skinparam note {
+    BackgroundColor #FEF9EC
+    BorderColor #F7B027
+    FontSize 9
 }
 
-skinparam database {
-    BorderColor #333
-    FontColor #FFFFFF
+skinparam arrow {
+    Color #6B7280
+    FontSize 9
+    FontColor #4B5563
+    Thickness 2
 }
 
-actor "Пользователь" as User
-participant "React Frontend" as Frontend #10b981
-participant "Python Backend" as Backend #8b5cf6
-participant "Gemini AI API" as Gemini #fbbf24
-database "JSON Storage" as Storage #ef4444
+title QuizGrad - Data Flow Architecture
 
-group Создание викторины
-    User -> Frontend: Вводит тему и выбирает количество
-    Frontend -> Backend: POST /generate-quiz
-    Backend -> Gemini: Запрос генерации
-    Gemini --> Backend: Сгенерированная викторина
-    Backend -> Backend: Определение темы и стиля
-    Backend --> Frontend: JSON с викториной
-    Frontend --> User: Отображение викторины
-end
+package "Frontend (React)" as frontend #E8F4F8 {
+    rectangle "User Interface\n(Components)" as ui #3B82F6
+    rectangle "State Management\n(React Hooks)" as state #3B82F6
+    rectangle "API Service\n(Axios/Fetch)" as apiService #3B82F6
+}
 
-group Проверка викторины
-    User -> Frontend: Выбирает ответы
-    Frontend -> Backend: POST /check-quiz
-    Backend -> Backend: Проверка ответов
-    Backend -> Storage: Сохранение в JSON
-    Backend --> Frontend: Результаты
-    Frontend --> User: Показ результатов
-end
+package "Backend API (Express)" as backend #FEF3C7 {
+    rectangle "Controllers\n(Request Handlers)" as controllers #F7B027
+    rectangle "Services\n(Business Logic)" as services #F7B027
+    rectangle "Middleware\n(Validation/Auth)" as middleware #F7B027
+}
 
-group Просмотр истории
-    User -> Frontend: Запрос истории
-    Frontend -> Backend: GET /quizzes
-    Backend <-- Storage: Список викторин
-    Backend --> Frontend: JSON с историей
-    Frontend --> User: Таблица викторин
-end
+' ============ EXTERNAL SERVICES ============
+package "External Services" as external #E9D5FF {
+    rectangle "AI Service\n(Claude API)" as ai #8B5CF6
+    rectangle "File Storage\n(S3/CloudStorage)" as storage #8B5CF6
+}
+
+' ============ DATABASE LAYER ============
+package "Data Layer" as dataLayer #DCFCE7 {
+    database "PostgreSQL\nDatabase" as db #22C55E {
+        rectangle "Users" as usersTable #BBF7D0
+        rectangle "Quizzes" as quizzesTable #BBF7D0
+        rectangle "Questions" as questionsTable #BBF7D0
+        rectangle "Attempts" as attemptsTable #BBF7D0
+    }
+    rectangle "Redis Cache\n(Session/Results)" as cache #22C55E
+}
+
+' ============ USER INTERACTIONS ============
+actor "User" as user #374151
+
+' ============ DATA FLOWS ============
+
+' User to Frontend
+user -down-> ui : 1. Взаимодействие
+ui -down-> state : 2. Обновление состояния
+
+' Frontend to Backend
+state -right-> apiService : 3. API запрос
+apiService -down-> middleware : 4. HTTP Request
+
+' Backend Processing
+middleware -down-> controllers : 5. Валидированный запрос
+controllers -right-> services : 6. Бизнес-логика
+
+' Services to Database
+services -down-> db : 7a. CRUD операции
+services -right-> ai : 7b. Генерация вопросов
+services -down-> cache : 7c. Кэширование
+
+' Database Relations
+usersTable -[hidden]right-> quizzesTable
+quizzesTable -[hidden]right-> questionsTable
+questionsTable -[hidden]right-> attemptsTable
+
+' External Services
+ai -up-> services : 8. AI ответ
+storage -up-> services : 9. Файлы
+
+' Response Flow
+db -up-> services : 10. Данные
+cache -up-> services : 11. Кэш данные
+services -left-> controllers : 12. Обработанные данные
+controllers -up-> middleware : 13. Response
+middleware -up-> apiService : 14. JSON Response
+apiService -left-> state : 15. Обновление состояния
+state -up-> ui : 16. Рендеринг UI
+
+' ============ NOTES ============
+note right of ui
+  **Основные компоненты:**
+  • HomePage
+  • CreatePage
+  • QuizCard
+  • QuizQuestion
+  • QuizResults
+end note
+
+note right of services
+  **Сервисы:**
+  • quizService.js
+  • aiService.js
+  • authService.js
+  • analyticsService.js
+end note
+
+note bottom of db
+  **Таблицы БД:**
+  • users (аутентификация)
+  • quizzes (викторины)
+  • questions (вопросы)
+  • answer_options (варианты)
+  • quiz_attempts (попытки)
+  • user_answers (ответы)
+  • user_category_stats (статистика)
+end note
+
+note left of ai
+  **AI генерирует:**
+  • Вопросы викторины
+  • Варианты ответов
+  • Объяснения
+  • Категории
+end note
+
+legend bottom
+  |<#3B82F6>   | Frontend Layer |
+  |<#F7B027>   | Backend Layer |
+  |<#8B5CF6>   | External Services |
+  |<#22C55E>   | Data Layer |
+  
+  **Основные потоки данных:**
+  1-6: Входящий запрос пользователя
+  7-9: Обработка и взаимодействие с БД/AI
+  10-16: Возврат данных пользователю
+end legend
 
 @enduml
